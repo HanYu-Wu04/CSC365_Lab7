@@ -178,12 +178,16 @@ def calculate_revenue_per_room(reservations):
         start_date = max(res['CheckIn'], date(datetime.now().year, 1, 1))
         end_date = min(res['Checkout'], date(datetime.now().year, 12, 31))
         
-        rate = float(res['Rate'])  # Ensure rate is float for arithmetic
-        
         current_date = start_date
         while current_date < end_date:
+            # Check if the current date is a weekend
+            if current_date.weekday() in [5, 6]:  # Saturday or Sunday
+                daily_rate = float(res['Rate']) * 1.1
+            else:
+                daily_rate = float(res['Rate'])
+            
             month_key = current_date.strftime('%Y-%m')
-            revenue_by_room[res['RoomCode']]["Revenue"][month_key] += rate
+            revenue_by_room[res['RoomCode']]["Revenue"][month_key] += daily_rate
             revenue_by_room[res['RoomCode']]["RoomName"] = res['RoomName']
             current_date += timedelta(days=1)
     
