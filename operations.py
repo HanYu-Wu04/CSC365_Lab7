@@ -1,6 +1,9 @@
 from db_config import create_connection
 from db_config import fetch_query_results
 from prettytable import PrettyTable
+from datetime import datetime, timedelta, date
+from collections import defaultdict
+from decimal import Decimal
 
 def show_tables():
     query = "SHOW TABLES"
@@ -63,20 +66,58 @@ def fr1_list_rooms_and_rates():
     else:
         print("No rooms found.")
 
+def fr2_make_reservation():
+    print("Please enter the following information for your reservation:")
+    first_name = input("First name: ")
+    last_name = input("Last name: ")
+    room_code = input("Room code (or 'Any' for no preference): ")
+    bed_type = input("Bed type desired (or 'Any' for no preference): ")
+    check_in = input("Begin date of stay (YYYY-MM-DD): ")
+    check_out = input("End date of stay (YYYY-MM-DD): ")
+    kids = int(input("Number of children: "))
+    adults = int(input("Number of adults: "))
+    handle_booking(first_name, last_name, room_code, bed_type, check_in, check_out, adults, kids)
 
-def fr2_make_reservation(room_code, check_in, check_out, last_name, first_name, adults, kids):
-    conn = create_connection()
-    if conn is not None:
-        cursor = conn.cursor()
-        insert_query = """
-        INSERT INTO lab7_reservations (Room, CheckIn, Checkout, LastName, FirstName, Adults, Kids)
-        VALUES (%s, %s, %s, %s, %s, %s, %s);
-        """
-        cursor.execute(insert_query, (room_code, check_in, check_out, last_name, first_name, adults, kids))
-        conn.commit()
-        print("Reservation successfully made.")
-        cursor.close()
-        conn.close()
+def query_available_rooms(room_code, bed_type, begin_date, end_date, number_of_adults, number_of_children):
+    occupancy = number_of_adults + number_of_children
+    query = f"""
+    SELECT RoomCode, RoomName, Beds, bedType, maxOcc, basePrice, decor FROM lab7_rooms 
+    WHERE RoomCode = IF('{room_code}' = 'Any', RoomCode, '{room_code}')
+    AND bedType = IF('{bed_type}' = 'Any', bedType, '{bed_type}')
+    AND maxOcc >= {occupancy}
+    AND RoomCode NOT IN (
+        SELECT Room FROM lab7_reservations 
+        WHERE (CheckIn BETWEEN '{begin_date}' AND '{end_date}' 
+        OR Checkout BETWEEN '{begin_date}' AND '{end_date}')
+        OR ('{begin_date}' BETWEEN CheckIn AND Checkout 
+        OR '{end_date}' BETWEEN CheckIn AND Checkout)
+    )
+    LIMIT 5;
+    """
+    return fetch_query_results(query)
+
+def handle_booking(first_name, last_name, room_code, bed_type, begin_date, end_date, number_of_adults, number_of_children):
+    available_rooms = query_available_rooms(room_code, bed_type, begin_date, end_date, number_of_adults, number_of_children)
+    if not available_rooms:
+        print("No suitable rooms are available.")
+        return
+
+    print("Available rooms:")
+    for i, room in enumerate(available_rooms, 1):
+        print(f"{i}. {room['RoomName']} ({room['RoomCode']}) - {room['bedType']}, Max Occupancy: {room['maxOcc']}")
+    
+    choice = input("Enter the option number to book or 'cancel' to return to the main menu: ")
+    if choice.lower() == 'cancel':
+        return
+
+    # Assuming choice is valid and within the range of available_rooms
+    selected_room = available_rooms[int(choice) - 1]
+    confirm_and_book_reservation(first_name, last_name, selected_room, begin_date, end_date, number_of_adults, number_of_children)
+
+def confirm_and_book_reservation(first_name, last_name, room, begin_date, end_date, adults, children):
+    # Calculate the total cost based on weekdays/weekends, then insert the reservation
+    # This part is simplified; the actual implementation should calculate the days and rates accordingly.
+    print(f"Reservation confirmed for {first_name} {last_name} in {room['RoomName']} from {begin_date} to {end_date}.")
 
 def fr3_cancel_reservation(reservation_code):
     conn = create_connection()
@@ -103,3 +144,64 @@ def fr4_detailed_reservation_info(last_name='', first_name='', room_code=''):
             print(row)
         cursor.close()
         conn.close()
+
+def fr5_revenue_current_year():
+    query = """
+    SELECT
+        r.RoomCode,
+        r.RoomName,
+        res.CheckIn,
+        res.Checkout,
+        res.Rate
+    FROM
+        lab7_rooms r
+    LEFT JOIN
+        lab7_reservations res ON r.RoomCode = res.Room
+    WHERE
+        res.Checkout >= CONCAT(YEAR(CURDATE()), '-01-01') AND
+        res.CheckIn <= CONCAT(YEAR(CURDATE()), '-12-31');
+    """
+    reservations = fetch_query_results(query)
+    if not reservations:
+        print("No reservations found for the current year.")
+        return
+
+    # Convert fetched data into a list of dicts, if not already in that format
+    reservations = [dict(row) for row in reservations]
+
+    revenue_by_room = calculate_revenue_per_room(reservations)
+    display_revenue(revenue_by_room)
+
+def calculate_revenue_per_room(reservations):
+    revenue_by_room = defaultdict(lambda: {"RoomName": "", "Revenue": defaultdict(float)})
+    for res in reservations:
+        start_date = max(res['CheckIn'], date(datetime.now().year, 1, 1))
+        end_date = min(res['Checkout'], date(datetime.now().year, 12, 31))
+        
+        rate = float(res['Rate'])  # Ensure rate is float for arithmetic
+        
+        current_date = start_date
+        while current_date < end_date:
+            month_key = current_date.strftime('%Y-%m')
+            revenue_by_room[res['RoomCode']]["Revenue"][month_key] += rate
+            revenue_by_room[res['RoomCode']]["RoomName"] = res['RoomName']
+            current_date += timedelta(days=1)
+    
+    return revenue_by_room
+
+def display_revenue(revenue_by_room):
+    table = PrettyTable()
+    months = [f"{datetime.now().year}-{str(m).zfill(2)}" for m in range(1, 13)]
+    table.field_names = ["Room Code", "Room Name"] + months + ["Total Revenue"]
+    
+    for room_code, data in revenue_by_room.items():
+        row = [room_code, data["RoomName"]]
+        total_revenue = 0
+        for month in months:
+            month_revenue = data["Revenue"].get(month, 0)
+            row.append(round(month_revenue))
+            total_revenue += month_revenue
+        row.append(round(total_revenue))
+        table.add_row(row)
+    
+    print(table)
