@@ -11,7 +11,7 @@ def create_connection():
         host='mysql.labthreesixfive.com',
         user=os.getenv('DB_USER'),
         password=os.getenv('DB_PASSWORD'),
-        database='hwu35'
+        database='hwu35',
     )
     return connection
 
@@ -32,7 +32,7 @@ def execute_query(query, params=None):
 # Function to execute a query and fetch its results (e.g., SELECT)
 def fetch_query_results(query, params=None):
     connection = create_connection()
-    cursor = connection.cursor()
+    cursor = connection.cursor(dictionary=True)
     try:
         cursor.execute(query, params or ())
         results = cursor.fetchall()
