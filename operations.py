@@ -1,5 +1,6 @@
 from db_config import create_connection
 from db_config import fetch_query_results
+from prettytable import PrettyTable
 
 def show_tables():
     query = "SHOW TABLES"
@@ -16,23 +17,52 @@ def describe_table(table_name):
         print(col)  # Adjust based on your fetchall() structure
 
 def fr1_list_rooms_and_rates():
-    conn = create_connection()
-    if conn is not None:
-        cursor = conn.cursor()
-        query = """
-        SELECT r.RoomCode, r.RoomName, r.Beds, r.bedType, r.maxOcc, r.basePrice, r.decor,
-               (SELECT COUNT(*) FROM lab7_reservations WHERE Room = r.RoomCode AND Checkout > CURDATE() - INTERVAL 180 DAY) / 180.0 AS popularity,
-               (SELECT MIN(CheckIn) FROM lab7_reservations WHERE Room = r.RoomCode AND CheckIn > CURDATE()) AS next_available,
-               (SELECT Checkout FROM lab7_reservations WHERE Room = r.RoomCode ORDER BY Checkout DESC LIMIT 1) AS last_checkout
-        FROM lab7_rooms r
-        ORDER BY popularity DESC;
-        """
-        cursor.execute(query)
-        rows = cursor.fetchall()
-        for row in rows:
-            print(row)
-        cursor.close()
-        conn.close()
+    query = """
+    SELECT r.RoomCode, r.RoomName, r.Beds, r.bedType, r.maxOcc, r.basePrice, r.decor,
+           COALESCE((SELECT ROUND(SUM(
+                 GREATEST(0, DATEDIFF(
+                   LEAST(Checkout, CURDATE()),
+                   GREATEST(CheckIn, CURDATE() - INTERVAL 180 DAY)
+                 ))
+               ) / 180, 2)
+         FROM lab7_reservations
+         WHERE Room = r.RoomCode
+         AND Checkout > CURDATE() - INTERVAL 180 DAY
+         AND CheckIn < CURDATE()), 0) AS popularity_score,
+           (SELECT MIN(CheckIn)
+            FROM lab7_reservations
+            WHERE Room = r.RoomCode
+            AND CheckIn >= CURDATE()) AS next_available_checkin,
+           (SELECT DATEDIFF(Checkout, CheckIn)
+            FROM lab7_reservations
+            WHERE Room = r.RoomCode
+            AND Checkout <= CURDATE()
+            ORDER BY Checkout DESC
+            LIMIT 1) AS last_stay_length,
+           (SELECT Checkout
+            FROM lab7_reservations
+            WHERE Room = r.RoomCode
+            AND Checkout <= CURDATE()
+            ORDER BY Checkout DESC
+            LIMIT 1) AS last_checkout_date
+    FROM lab7_rooms r
+    ORDER BY popularity_score DESC;
+    """
+    results = fetch_query_results(query)
+    if results:
+        table = PrettyTable()
+        table.field_names = ["Room Code", "Room Name", "Beds", "Bed Type", "Max Occupancy", "Base Price", "Decor", "Popularity Score", "Next Available Check-In", "Last Stay Length", "Last Checkout Date"]
+        for row in results:
+            # Directly using row[] for simplicity, adjust based on actual result format
+            table.add_row([
+                row['RoomCode'], row['RoomName'], row['Beds'], row['bedType'],
+                row['maxOcc'], row['basePrice'], row['decor'], row['popularity_score'],
+                row['next_available_checkin'], row['last_stay_length'], row['last_checkout_date']
+            ])
+        print(table)
+    else:
+        print("No rooms found.")
+
 
 def fr2_make_reservation(room_code, check_in, check_out, last_name, first_name, adults, kids):
     conn = create_connection()
