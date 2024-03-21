@@ -8,10 +8,10 @@ load_dotenv()
 # Function to create database connection
 def create_connection():
     connection = mysql.connector.connect(
-        host=os.getenv('DB_HOST'),
+        host='mysql.labthreesixfive.com',
         user=os.getenv('DB_USER'),
         password=os.getenv('DB_PASSWORD'),
-        database=os.getenv('DB_NAME')
+        database='hwu35'
     )
     return connection
 
