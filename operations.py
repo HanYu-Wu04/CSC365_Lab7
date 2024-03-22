@@ -359,7 +359,7 @@ def fr4_detailed_reservation_info():
     last_name = input("Last name: ").strip() or '%'
     date_range_start = input("Start date (YYYY-MM-DD, leave blank for 'Any'): ").strip() or '1900-01-01'
     date_range_end = input("End date (YYYY-MM-DD, leave blank for 'Any'): ").strip() or '9999-12-31'
-    room_code = input("Room code: ").strip() or '%'
+    room_code = input("Room code(leave blank for 'Any'): ").strip() or '%'
     reservation_code = input("Reservation code (leave blank for 'Any'): ").strip() or '%'
 
     # Construct the query with adjusted conditions for actual overlap
