@@ -7,10 +7,6 @@ from collections import defaultdict
 from decimal import Decimal
 import mysql.connector
 import random
-from dotenv import load_dotenv
-import os
-
-load_dotenv
 
 def show_tables():
     query = "SHOW TABLES"
@@ -293,10 +289,7 @@ def book_room(details, selected_room):
     connection = None
 
     try:
-        connection = mysql.connector.connect(host='mysql.labthreesixfive.com',
-                                             database='hwu35',
-                                             user='hwu35',
-                                             password=os.getenv('DB_PASSWORD'))
+        connection = create_connection()
         if connection.is_connected():
             cursor = connection.cursor()
             reservation_code = random.randint(10000, 99999)
@@ -346,12 +339,16 @@ def cancel_reservation(reservation_code):
         reservation = cursor.fetchone()
 
         if reservation:
+            # Initialize PrettyTable and set column names to match the reservation tuple
+            table = PrettyTable()
+            table.field_names = ["Reservation Code", "Room Code", "Check-in Date", "Checkout Date", "Rate", "LastName", "FirstName", "Adults", "Kids"]
+
+            # Add the reservation tuple directly as a row since each element corresponds to a column
+            table.add_row(reservation)
+
+            # Display the table
             print("Reservation details:")
-            print("Reservation Code:", reservation[0])
-            print("Room Code:", reservation[1])
-            print("Check-in Date:", reservation[2])
-            print("Checkout Date:", reservation[3])
-            # Display other reservation details as needed
+            print(table)
 
             # Confirm cancellation
             confirm = input("Are you sure you want to cancel this reservation? (yes/no): ").lower()
