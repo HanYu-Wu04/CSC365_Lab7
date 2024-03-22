@@ -89,6 +89,7 @@ def get_reservation_details():
         'check_in': input("Begin date of stay (YYYY-MM-DD): "),
         'check_out': input("End date of stay (YYYY-MM-DD): "),
         'kids': int(input("Number of children: ")),
+        'adults': int(input("Number of adult: ")),
     }
     return details
 
