@@ -1,9 +1,16 @@
+from mysql.connector import Error
 from db_config import create_connection
 from db_config import fetch_query_results
 from prettytable import PrettyTable
 from datetime import datetime, timedelta, date
 from collections import defaultdict
 from decimal import Decimal
+import mysql.connector
+import random
+from dotenv import load_dotenv
+import os
+
+load_dotenv
 
 def show_tables():
     query = "SHOW TABLES"
@@ -75,22 +82,13 @@ def fr2_make_reservation():
 def get_reservation_details():
     print("Please enter your reservation details:")
     details = {
-        #'first_name': input("First name: "),
-        'first_name': "evan",
-        #'last_name': input("Last name: "),
-        'last_name': "cao",
-        #'room_code': input("Room code (or 'Any' for no preference): "),
-        'room_code': "HBB",
-        #'bed_type': input("Bed type desired (or 'Any' for no preference): "),
-        'bed_type': "Any",
-        #'check_in': input("Begin date of stay (YYYY-MM-DD): "),
-        'check_in': "2024-04-01",
-        #'check_out': input("End date of stay (YYYY-MM-DD): "),
-        'check_out': "2024-04-30",
-        #'kids': int(input("Number of children: ")),
-        'kids': 0,
-        #'adults': int(input("Number of adults: "))
-        'adults': 1
+        'first_name': input("First name: "),
+        'last_name': input("Last name: "),
+        'room_code': input("Room code (or 'Any' for no preference): "),
+        'bed_type': input("Bed type desired (or 'Any' for no preference): "),
+        'check_in': input("Begin date of stay (YYYY-MM-DD): "),
+        'check_out': input("End date of stay (YYYY-MM-DD): "),
+        'kids': int(input("Number of children: ")),
     }
     return details
 
@@ -152,7 +150,7 @@ def find_rooms_matching_criteria(details):
         # Similar room suggestion nearby dates
         {
             "query": """
-               SELECT DISTINCT r1.Room, ro.RoomName, ro.Beds, ro.bedType, ro.maxOcc, ro.baseprice, ro.decor, r1.CheckOut AS StartDate
+               SELECT DISTINCT ro.RoomCode, ro.RoomName, ro.Beds, ro.bedType, ro.maxOcc, ro.basePrice, ro.decor, r1.CheckOut AS StartDate
                     FROM lab7_reservations r1
                     LEFT JOIN lab7_reservations r2 ON r1.Room = r2.Room AND r1.CheckOut < r2.CheckIn
                     JOIN lab7_rooms ro ON r1.Room = ro.RoomCode
@@ -191,12 +189,12 @@ def handle_room_selection_and_booking(details):
         return
 
     table = PrettyTable()
-    table.field_names = ["#", "Room Name", "Room Code", "Beds", "Type", "Max Occupancy", "Base Price", "Decor", "Check-In", "Check-Out"]
+    table.field_names = ["#", "Room Name", "Room Code", "Beds", "Type", "Max Occupancy", "Base Price", "Decor", "Suggested Check-In", "Suggested Check-Out"]
 
     desired_interval = datetime.strptime(details['check_out'], '%Y-%m-%d') - datetime.strptime(details['check_in'], '%Y-%m-%d')
 
     for i, room in enumerate(rooms_suggestions, 1):
-        base_price = "${:,.2f}".format(room['baseprice']) if isinstance(room['baseprice'], Decimal) else "Unknown"
+        base_price = "${:,.2f}".format(room['basePrice']) if isinstance(room['basePrice'], Decimal) else "Unknown"
         
         # For rooms with an alternative check-in date
         if 'StartDate' in room:
@@ -207,7 +205,7 @@ def handle_room_selection_and_booking(details):
             alternative_check_in = "N/A"
             alternative_check_out = "N/A"
 
-        table.add_row([i, room.get('RoomName', 'Unknown'), room.get('Room', 'N/A'), room.get('Beds', 'N/A'), room.get('bedType', 'N/A'), 
+        table.add_row([i, room.get('RoomName', 'Unknown'), room.get('RoomCode', 'N/A'), room.get('Beds', 'N/A'), room.get('bedType', 'N/A'), 
                        room.get('maxOcc', 'N/A'), base_price, room.get('decor', 'N/A'), 
                        alternative_check_in, alternative_check_out])
 
@@ -247,7 +245,7 @@ def confirm_and_book_reservation(details, selected_room):
     weekend_days = sum(1 for i in range(total_days) if (check_in + timedelta(days=i)).weekday() >= 5)
     weekday_days = total_days - weekend_days
 
-    base_rate = float(selected_room['baseprice'])  # Assuming basePrice is a Decimal
+    base_rate = float(selected_room['basePrice'])  # Assuming basePrice is a Decimal
     total_cost = (weekday_days * base_rate) + (weekend_days * base_rate * 1.1)
 
     # PrettyTable for displaying booking confirmation details
@@ -256,7 +254,7 @@ def confirm_and_book_reservation(details, selected_room):
     confirmation_details = [
         ["First Name", details['first_name']],
         ["Last Name", details['last_name']],
-        ["Room Code", selected_room.get('Room', 'N/A')],  # Adjusted based on your provided dictionary structure
+        ["Room Code", selected_room.get('RoomCode', 'N/A')],  # Adjusted based on your provided dictionary structure
         ["Room Name", selected_room.get('RoomName', 'Unknown')],
         ["Bed Type", selected_room.get('bedType', 'N/A')],
         ["Begin Date of Stay", check_in_date],
@@ -271,18 +269,99 @@ def confirm_and_book_reservation(details, selected_room):
     
     print("\nReservation Confirmation:")
     print(confirmation_table)
-    
+    book_room(details, selected_room)
 
-def fr3_cancel_reservation(reservation_code):
-    conn = create_connection()
-    if conn is not None:
+def book_room(details, selected_room):
+    # Generate a unique reservation code (for demonstration purposes)
+    # This example uses the current datetime and a random number
+
+    check_in_date = details['check_in'] if 'StartDate' not in selected_room else selected_room['StartDate'].strftime('%Y-%m-%d')
+    desired_interval_days = (datetime.strptime(details['check_out'], '%Y-%m-%d') - datetime.strptime(details['check_in'], '%Y-%m-%d')).days
+    check_out_date = details['check_out'] if 'CheckOut' not in selected_room else (selected_room['StartDate'] + timedelta(days=desired_interval_days)).strftime('%Y-%m-%d')
+    connection = None
+
+    try:
+        connection = mysql.connector.connect(host='mysql.labthreesixfive.com',
+                                             database='hwu35',
+                                             user='hwu35',
+                                             password=os.getenv('DB_PASSWORD'))
+        if connection.is_connected():
+            cursor = connection.cursor()
+            reservation_code = random.randint(10000, 99999)
+            query = "SELECT * FROM lab7_reservations WHERE CODE = %s"
+            cursor.execute(query, (reservation_code,))
+            existing_reservation = cursor.fetchone()
+
+            while existing_reservation:
+                reservation_code = random.randint(10000, 99999)
+                cursor.execute(query, (reservation_code,))
+                existing_reservation = cursor.fetchone()
+
+            insert_query = """
+            INSERT INTO lab7_reservations (CODE, Room, CheckIn, Checkout, Rate, LastName, FirstName, Adults, Kids)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+
+            cursor.execute(insert_query, (reservation_code, selected_room['RoomCode'], check_in_date, check_out_date, selected_room['basePrice'],
+                                          details['last_name'], details['first_name'],
+                                          details['adults'], details['kids']))
+
+            connection.commit()
+            print("Reservation successfully booked with code:", reservation_code)
+    except Error as e:
+        print(f"Error: {e}")
+    finally:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+            print("MySQL connection is closed")
+
+def fr3_cancel_reservation():
+    # Prompt user to enter reservation code
+    reservation_code = input("Enter the reservation code you wish to cancel: ")
+
+    # Call cancel_reservation function with the entered reservation code
+    cancel_reservation(reservation_code)
+
+def cancel_reservation(reservation_code):
+    try:
+        conn = create_connection()
         cursor = conn.cursor()
-        delete_query = "DELETE FROM lab7_reservations WHERE CODE = %s;"
-        cursor.execute(delete_query, (reservation_code,))
-        conn.commit()
-        print(f"Reservation {reservation_code} cancelled.")
-        cursor.close()
-        conn.close()
+
+        # Fetch reservation details
+        query = "SELECT * FROM lab7_reservations WHERE CODE = %s"
+        cursor.execute(query, (reservation_code,))
+        reservation = cursor.fetchone()
+
+        if reservation:
+            print("Reservation details:")
+            print("Reservation Code:", reservation[0])
+            print("Room Code:", reservation[1])
+            print("Check-in Date:", reservation[2])
+            print("Checkout Date:", reservation[3])
+            # Display other reservation details as needed
+
+            # Confirm cancellation
+            confirm = input("Are you sure you want to cancel this reservation? (yes/no): ").lower()
+            if confirm == "yes":
+                # Delete reservation record
+                delete_query = "DELETE FROM lab7_reservations WHERE CODE = %s"
+                cursor.execute(delete_query, (reservation_code,))
+                conn.commit()  # Commit changes
+                print("Reservation canceled successfully.")
+            else:
+                print("Reservation cancellation aborted.")
+        else:
+            print("Reservation not found.")
+        
+    except mysql.connector.Error as error:
+        print("Error:", error)
+
+    finally:
+        # Close cursor and connection
+        if 'conn' in locals() and conn.is_connected():
+            cursor.close()
+            conn.close()
 
 def fr4_detailed_reservation_info(last_name='', first_name='', room_code=''):
     conn = create_connection()
