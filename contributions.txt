@@ -1,0 +1,203 @@
+commit 9ad2902e43df9de2045bf40271bd02eebc543196
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Fri Mar 22 12:17:55 2024 -0700
+
+    Updated readme for better display
+
+ README.md | 28 ++++++++++++++++++----------
+ 1 file changed, 18 insertions(+), 10 deletions(-)
+
+commit ee2bca324e5f91c44aa6486940be70b884b704ca
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Fri Mar 22 12:11:35 2024 -0700
+
+    final version
+
+ README.md       | 17 ++++++++++++++++-
+ operations.py   |  2 +-
+ requirement.txt |  2 +-
+ 3 files changed, 18 insertions(+), 3 deletions(-)
+
+commit 0bceb3969cbdc2a44b54163e5847583a1d183d81
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Fri Mar 22 11:49:16 2024 -0700
+
+    clean up, deleting useless comments
+
+ db_config.py  | 14 --------------
+ main.py       | 12 ++----------
+ operations.py | 27 ++++-----------------------
+ 3 files changed, 6 insertions(+), 47 deletions(-)
+
+commit 33432475afd8f70d705affa429007d2bb2da3b4c
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Fri Mar 22 11:43:35 2024 -0700
+
+    updated db_config
+
+ db_config.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit 8c4bc179c78b66dae1df1619af57d71f3099c8ff
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Fri Mar 22 11:41:57 2024 -0700
+
+    added prettytable requirement
+
+ requirement.txt | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+commit b4306c4b68854f59f66c73549b1113bfc81fab64
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Fri Mar 22 11:40:04 2024 -0700
+
+    displayed cancel reservation in pretty table
+
+ operations.py | 23 ++++++++++-------------
+ 1 file changed, 10 insertions(+), 13 deletions(-)
+
+commit a243a4e41fdd23fef429632e8c74daa074ca511f
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Fri Mar 22 11:25:39 2024 -0700
+
+    fixed logic error in displaying next available check in date in fr1
+
+ operations.py | 37 ++++++++++++++++++++++++-------------
+ 1 file changed, 24 insertions(+), 13 deletions(-)
+
+commit 12c64ee6194b41dee89d3b3b117f3eb994ff0fcd
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Fri Mar 22 10:51:58 2024 -0700
+
+    fixed minor issue
+
+ operations.py | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit 5dc9cedae376a0d5726f2705ff4d346c9f0831d7
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Fri Mar 22 01:56:53 2024 -0700
+
+    Implemented fr4
+
+ operations.py | 56 ++++++++++++++++++++++++++++++++++++++++++--------------
+ 1 file changed, 42 insertions(+), 14 deletions(-)
+
+commit ada155e25a8052923a5721f6e99c8df2013026eb
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Fri Mar 22 01:14:14 2024 -0700
+
+    Fully implemented fr2 and fr3
+
+ operations.py | 143 +++++++++++++++++++++++++++++++++++++++++++++-------------
+ 1 file changed, 111 insertions(+), 32 deletions(-)
+
+commit 8e6b4fae60fcd859bd91e92cfa9230bd43dbc7c7
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Fri Mar 22 00:19:39 2024 -0700
+
+    Implemented fr2 without inserting into database yet
+
+ operations.py | 224 ++++++++++++++++++++++++++++++++++++++++++++++------------
+ 1 file changed, 180 insertions(+), 44 deletions(-)
+
+commit 9a6ebe82089a2c7ccc0c387f725eb942f60bddcd
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Thu Mar 21 16:27:16 2024 -0700
+
+    fixed fr1 to return the available check in date instead of reserved check in date
+
+ operations.py | 106 ++++++++++++++++++++++++++++++++++------------------------
+ 1 file changed, 62 insertions(+), 44 deletions(-)
+
+commit aa52e020914eefb964a6ca218eaf2fb3cb221161
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Thu Mar 21 15:55:49 2024 -0700
+
+    Implemented fr5
+
+ operations.py | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+commit d39784afabc4a83b8f70249ff8bb9196efc51360
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Thu Mar 21 13:53:15 2024 -0700
+
+    Implemented fr5
+
+ operations.py | 130 +++++++++++++++++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 116 insertions(+), 14 deletions(-)
+
+commit 5a4cc88f7aa7a017c2e1247f39e067e64aa73e8c
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Thu Mar 21 13:47:28 2024 -0700
+
+    addedmore choices
+
+ main.py | 20 +++++++++++++-------
+ 1 file changed, 13 insertions(+), 7 deletions(-)
+
+commit 063f96cc161500b36529606b5d31917b0bf947e9
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Thu Mar 21 12:56:52 2024 -0700
+
+    FR1 Implemented
+
+ operations.py | 64 +++++++++++++++++++++++++++++++++++++++++++----------------
+ 1 file changed, 47 insertions(+), 17 deletions(-)
+
+commit 2bb9285be1dfe4f882683b5d2b7bc3b0b4829b55
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Thu Mar 21 12:56:36 2024 -0700
+
+    added dictionary=True for fetching dictionary
+
+ db_config.py | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+commit 5a44e1640fb2b6a4e43f83390c256b023850db32
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Thu Mar 21 11:54:32 2024 -0700
+
+    updated config
+
+ db_config.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+commit 20b8961b6287d14ce69965132737f4670814ce80
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Thu Mar 21 00:51:09 2024 -0700
+
+    updated config and added query fetch
+
+ db_config.py | 47 ++++++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 40 insertions(+), 7 deletions(-)
+
+commit a3c17a73c17fbc631a2b0cb81721d2c3c47c398c
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Thu Mar 21 00:50:33 2024 -0700
+
+    inital implementation
+
+ main.py       | 32 +++++++++++++++++++++++++
+ operations.py | 75 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 107 insertions(+)
+
+commit 55d8a41f4a5a79d6fe8d5f2cb457c332f80c90d5
+Author: HanYu Wu <hanyuwu04@gmail.com>
+Date:   Wed Mar 20 23:52:02 2024 -0700
+
+    setting up database requirement and config file
+
+ db_config.py    | 12 ++++++++++++
+ requirement.txt |  2 ++
+ 2 files changed, 14 insertions(+)
+
+commit c71a1bd9cb00a5edad122ff79f92135bdcffd327
+Author: HanYu Wu <113960654+HanYu-Wu04@users.noreply.github.com>
+Date:   Wed Mar 20 23:36:40 2024 -0700
+
+    Initial commit
+
+ README.md | 1 +
+ 1 file changed, 1 insertion(+)
