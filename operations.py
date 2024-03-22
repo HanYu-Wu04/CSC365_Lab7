@@ -1,26 +1,11 @@
+import mysql.connector
 from mysql.connector import Error
-from db_config import create_connection
-from db_config import fetch_query_results
+from db_config import *
 from prettytable import PrettyTable
 from datetime import datetime, timedelta, date
 from collections import defaultdict
 from decimal import Decimal
-import mysql.connector
 import random
-
-def show_tables():
-    query = "SHOW TABLES"
-    tables = fetch_query_results(query)
-    print("Tables in the database:")
-    for table in tables:
-        print(table[0])  # Adjust based on your fetchall() structure
-
-def describe_table(table_name):
-    query = f"DESCRIBE {table_name}"
-    description = fetch_query_results(query)
-    print(f"Structure of {table_name}:")
-    for col in description:
-        print(col)  # Adjust based on your fetchall() structure
 
 def fr1_list_rooms_and_rates():
     query = """
@@ -186,7 +171,6 @@ def find_rooms_matching_criteria(details):
         if results and num_run==1:
             return results
         elif num_run == 4:
-            print(num_run)
             return results[:5]
     return []
 
@@ -262,12 +246,12 @@ def confirm_and_book_reservation(details, selected_room):
     confirmation_details = [
         ["First Name", details['first_name']],
         ["Last Name", details['last_name']],
-        ["Room Code", selected_room.get('RoomCode', 'N/A')],  # Adjusted based on your provided dictionary structure
+        ["Room Code", selected_room.get('RoomCode', 'N/A')],
         ["Room Name", selected_room.get('RoomName', 'Unknown')],
         ["Bed Type", selected_room.get('bedType', 'N/A')],
         ["Begin Date of Stay", check_in_date],
         ["End Date of Stay", check_out_date],
-        ["Number of Adults", str(details['adults'])],  # Ensuring numeric values are converted to strings for PrettyTable
+        ["Number of Adults", str(details['adults'])],
         ["Number of Children", str(details['kids'])],
         ["Total Cost of Stay", f"${round(total_cost, 2)}"]
     ]
@@ -280,9 +264,6 @@ def confirm_and_book_reservation(details, selected_room):
     book_room(details, selected_room)
 
 def book_room(details, selected_room):
-    # Generate a unique reservation code (for demonstration purposes)
-    # This example uses the current datetime and a random number
-
     check_in_date = details['check_in'] if 'StartDate' not in selected_room else selected_room['StartDate'].strftime('%Y-%m-%d')
     desired_interval_days = (datetime.strptime(details['check_out'], '%Y-%m-%d') - datetime.strptime(details['check_in'], '%Y-%m-%d')).days
     check_out_date = details['check_out'] if 'CheckOut' not in selected_room else (selected_room['StartDate'] + timedelta(days=desired_interval_days)).strftime('%Y-%m-%d')

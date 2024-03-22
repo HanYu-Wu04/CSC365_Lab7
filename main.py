@@ -1,4 +1,3 @@
-# main.py
 from operations import *
 
 def main():
@@ -9,9 +8,7 @@ def main():
         3. Cancel a Reservation
         4. Detailed Reservation Information
         5. Revenue by Month
-        6. Show Database Tables
-        7. Describe a Table
-        8. Exit
+        6. Exit
         """)
         choice = input("Select an option: ")
         if choice == "1":
@@ -25,11 +22,6 @@ def main():
         elif choice == "5":
             fr5_revenue_current_year()
         elif choice == "6":
-            show_tables()
-        elif choice == "7":
-            table_name = input("Enter table name to describe: ")
-            describe_table(table_name)
-        elif choice == "8":
             break
         else:
             print("Invalid choice. Please select again.")

@@ -15,20 +15,6 @@ def create_connection():
     )
     return connection
 
-# Function to execute a query that doesn't return data (e.g., INSERT, UPDATE, DELETE)
-def execute_query(query, params=None):
-    connection = create_connection()
-    cursor = connection.cursor()
-    try:
-        cursor.execute(query, params or ())
-        connection.commit()
-        print("Query executed successfully")
-    except mysql.connector.Error as err:
-        print(f"Error: {err}")
-    finally:
-        cursor.close()
-        connection.close()
-
 # Function to execute a query and fetch its results (e.g., SELECT)
 def fetch_query_results(query, params=None):
     connection = create_connection()
