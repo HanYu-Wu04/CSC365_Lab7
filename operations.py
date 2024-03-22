@@ -151,19 +151,30 @@ def find_rooms_matching_criteria(details):
         # Similar room suggestion nearby dates
         {
             "query": """
-               SELECT DISTINCT ro.RoomCode, ro.RoomName, ro.Beds, ro.bedType, ro.maxOcc, ro.basePrice, ro.decor, r1.CheckOut AS StartDate
-                    FROM lab7_reservations r1
-                    LEFT JOIN lab7_reservations r2 ON r1.Room = r2.Room AND r1.CheckOut < r2.CheckIn
-                    JOIN lab7_rooms ro ON r1.Room = ro.RoomCode
-                    WHERE r1.CheckOut > %s
-                    AND NOT EXISTS (
-                        SELECT 1
-                        FROM lab7_reservations r3
-                        WHERE r3.Room = r1.Room
-                        AND r3.CheckIn < DATE_ADD(r1.CheckOut, INTERVAL %s DAY)
-                        AND r3.CheckOut > r1.CheckOut
-                    )
-                    ORDER BY r1.CheckOut
+               SELECT DISTINCT 
+                    ro.RoomCode, 
+                    ro.RoomName, 
+                    ro.Beds, 
+                    ro.bedType, 
+                    ro.maxOcc, 
+                    ro.basePrice, 
+                    ro.decor, 
+                    r1.CheckOut AS StartDate
+                FROM 
+                    lab7_reservations r1
+                JOIN 
+                    lab7_rooms ro ON r1.Room = ro.RoomCode
+                WHERE 
+                    r1.CheckOut >= CURDATE()  -- Looking for dates starting from today or the specified start date
+                AND NOT EXISTS (
+                    -- Ensure there's no reservation starting on the checkout date of the current reservation
+                    SELECT 1
+                    FROM lab7_reservations r3
+                    WHERE r3.Room = r1.Room
+                    AND r3.CheckIn = r1.CheckOut
+                )
+                ORDER BY 
+                    r1.CheckOut
             """,
             "params": (details['check_in'], interval_days)
         }
