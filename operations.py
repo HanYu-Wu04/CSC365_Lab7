@@ -363,20 +363,48 @@ def cancel_reservation(reservation_code):
             cursor.close()
             conn.close()
 
-def fr4_detailed_reservation_info(last_name='', first_name='', room_code=''):
-    conn = create_connection()
-    if conn is not None:
-        cursor = conn.cursor()
-        query = """
-        SELECT * FROM lab7_reservations
-        WHERE LastName LIKE %s AND FirstName LIKE %s AND Room LIKE %s;
-        """
-        cursor.execute(query, (f"%{last_name}%", f"%{first_name}%", f"%{room_code}%"))
-        rows = cursor.fetchall()
-        for row in rows:
-            print(row)
-        cursor.close()
-        conn.close()
+def fr4_detailed_reservation_info():
+    print("Enter search criteria (leave blank for 'Any'):")
+    first_name = input("First name: ").strip() or '%'
+    last_name = input("Last name: ").strip() or '%'
+    date_range_start = input("Start date (YYYY-MM-DD, leave blank for 'Any'): ").strip() or '1900-01-01'
+    date_range_end = input("End date (YYYY-MM-DD, leave blank for 'Any'): ").strip() or '9999-12-31'
+    room_code = input("Room code: ").strip() or '%'
+    reservation_code = input("Reservation code (leave blank for 'Any'): ").strip() or '%'
+
+    # Construct the query with adjusted conditions for actual overlap
+    query = """
+    SELECT r.CODE, r.Room, r.CheckIn, r.Checkout, r.Rate, r.LastName, r.FirstName, r.Adults, r.Kids, rm.RoomName
+    FROM lab7_reservations r
+    LEFT JOIN lab7_rooms rm ON r.Room = rm.RoomCode
+    WHERE r.FirstName LIKE %s AND r.LastName LIKE %s
+    AND r.CheckIn < %s AND r.Checkout > %s
+    AND r.Room LIKE %s AND r.CODE LIKE %s
+    ORDER BY r.CheckIn;
+    """
+
+    connection = create_connection()
+
+    try:
+        if connection.is_connected():
+            cursor = connection.cursor()
+            cursor.execute(query, (first_name, last_name, date_range_end, date_range_start, room_code, reservation_code))
+            
+            results = cursor.fetchall()
+            if results:
+                table = PrettyTable()
+                table.field_names = ["Code", "Room", "Check-in", "Check-out", "Rate", "Last Name", "First Name", "Adults", "Kids", "Room Name"]
+                for row in results:
+                    table.add_row(row)
+                print(table)
+            else:
+                print("No reservations found matching the criteria.")
+    except Error as e:
+        print(f"Error: {e}")
+    finally:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
 
 def fr5_revenue_current_year():
     query = """
