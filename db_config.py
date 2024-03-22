@@ -9,7 +9,7 @@ load_dotenv()
 def create_connection():
     connection = mysql.connector.connect(
         host='mysql.labthreesixfive.com',
-        user=os.getenv('DB_USER'),
+        user='hwu35',
         password=os.getenv('DB_PASSWORD'),
         database='hwu35',
     )
