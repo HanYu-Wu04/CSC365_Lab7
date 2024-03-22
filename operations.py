@@ -67,75 +67,211 @@ def fr1_list_rooms_and_rates():
     else:
         print("No rooms found.")
 
-
 def fr2_make_reservation():
     reservation_details = get_reservation_details()
+    occupancy = reservation_details['adults'] + reservation_details['kids']
     handle_room_selection_and_booking(reservation_details)
 
 def get_reservation_details():
     print("Please enter your reservation details:")
     details = {
-        'first_name': input("First name: "),
-        'last_name': input("Last name: "),
-        'room_code': input("Room code (or 'Any' for no preference): "),
-        'bed_type': input("Bed type desired (or 'Any' for no preference): "),
-        'check_in': input("Begin date of stay (YYYY-MM-DD): "),
-        'check_out': input("End date of stay (YYYY-MM-DD): "),
-        'kids': int(input("Number of children: ")),
-        'adults': int(input("Number of adults: "))
+        #'first_name': input("First name: "),
+        'first_name': "evan",
+        #'last_name': input("Last name: "),
+        'last_name': "cao",
+        #'room_code': input("Room code (or 'Any' for no preference): "),
+        'room_code': "HBB",
+        #'bed_type': input("Bed type desired (or 'Any' for no preference): "),
+        'bed_type': "Any",
+        #'check_in': input("Begin date of stay (YYYY-MM-DD): "),
+        'check_in': "2024-04-01",
+        #'check_out': input("End date of stay (YYYY-MM-DD): "),
+        'check_out': "2024-04-30",
+        #'kids': int(input("Number of children: ")),
+        'kids': 0,
+        #'adults': int(input("Number of adults: "))
+        'adults': 1
     }
     return details
 
 def find_rooms_matching_criteria(details):
-    # This is a simplified query. You'll need to extend it based on your exact logic for checking availability and preferences.
     occupancy = details['adults'] + details['kids']
-    query = """
-    SELECT RoomCode, RoomName, Beds, bedType, maxOcc, basePrice, decor 
-    FROM lab7_rooms 
-    WHERE (RoomCode = %s OR %s = 'Any')
-    AND (bedType = %s OR %s = 'Any')
-    AND maxOcc >= %s
-    AND NOT EXISTS (
-        SELECT 1 FROM lab7_reservations 
-        WHERE Room = RoomCode 
-        AND ((CheckIn <= %s AND Checkout >= %s) OR (CheckIn < %s AND Checkout >= %s))
-    )
-    ORDER BY maxOcc, basePrice DESC
-    LIMIT 5;
-    """
-    params = (details['room_code'], details['room_code'], details['bed_type'], details['bed_type'], occupancy, details['check_in'], details['check_out'], details['check_in'], details['check_out'])
-    return fetch_query_results(query, params)
+    desired_check_in = details['check_in']
+    desired_check_out = details['check_out']
+    interval_days = (datetime.strptime(desired_check_out, '%Y-%m-%d') - datetime.strptime(desired_check_in, '%Y-%m-%d')).days
+
+    # Start with the most specific query, gradually relaxing constraints
+    queries = [
+        # Exact match or "Any" preference
+        {
+            "query": """
+                SELECT r.RoomCode, r.RoomName, r.Beds, r.bedType, r.maxOcc, r.basePrice, r.decor
+                FROM lab7_rooms r
+                WHERE (r.RoomCode = %s OR %s = 'Any')
+                AND (r.bedType = %s OR %s = 'Any')
+                AND r.maxOcc >= %s
+                AND r.RoomCode NOT IN (
+                    SELECT res.Room
+                    FROM lab7_reservations res
+                    WHERE res.Room = r.RoomCode
+                    AND (res.CheckIn < %s AND res.Checkout > %s)
+                )
+                ORDER BY r.maxOcc DESC, r.basePrice
+            """,
+            "params": (details['room_code'], details['room_code'], details['bed_type'], details['bed_type'], occupancy, details['check_out'], details['check_in'])
+        },
+        # Similar room suggestions ignoring room code
+        {
+            "query": """
+                SELECT RoomCode, RoomName, Beds, bedType, maxOcc, basePrice, decor 
+                FROM lab7_rooms 
+                WHERE (bedType = %s OR %s = 'Any')
+                AND maxOcc >= %s
+                AND RoomCode NOT IN (
+                    SELECT Room FROM lab7_reservations 
+                    WHERE (CheckIn < %s AND Checkout > %s)
+                )
+                ORDER BY maxOcc DESC, basePrice
+            """,
+            "params": (details['bed_type'], details['bed_type'], occupancy, details['check_out'], details['check_in'])
+        },
+        # Similar room suggestions ignoring bed_type
+        {
+            "query": """
+                SELECT RoomCode, RoomName, Beds, bedType, maxOcc, basePrice, decor 
+                FROM lab7_rooms 
+                WHERE maxOcc >= %s
+                AND RoomCode NOT IN (
+                    SELECT Room FROM lab7_reservations 
+                    WHERE (CheckIn < %s AND Checkout > %s)
+                )
+                ORDER BY maxOcc DESC, basePrice
+            """,
+            "params": (occupancy, details['check_out'], details['check_in'])
+        },
+        # Similar room suggestion nearby dates
+        {
+            "query": """
+               SELECT DISTINCT r1.Room, ro.RoomName, ro.Beds, ro.bedType, ro.maxOcc, ro.baseprice, ro.decor, r1.CheckOut AS StartDate
+                    FROM lab7_reservations r1
+                    LEFT JOIN lab7_reservations r2 ON r1.Room = r2.Room AND r1.CheckOut < r2.CheckIn
+                    JOIN lab7_rooms ro ON r1.Room = ro.RoomCode
+                    WHERE r1.CheckOut > %s
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM lab7_reservations r3
+                        WHERE r3.Room = r1.Room
+                        AND r3.CheckIn < DATE_ADD(r1.CheckOut, INTERVAL %s DAY)
+                        AND r3.CheckOut > r1.CheckOut
+                    )
+                    ORDER BY r1.CheckOut
+            """,
+            "params": (details['check_in'], interval_days)
+        }
+    ]
+
+    num_run=0
+    results = []
+    for query_info in queries:
+        query = fetch_query_results(query_info['query'], query_info['params'])
+        if query != None:
+            results += query
+        num_run += 1
+        if results and num_run==1:
+            return results
+        elif num_run == 4:
+            print(num_run)
+            return results[:5]
+    return []
 
 def handle_room_selection_and_booking(details):
-    available_rooms = find_rooms_matching_criteria(details)
-    if not available_rooms:
+    rooms_suggestions = find_rooms_matching_criteria(details)
+    if not rooms_suggestions:
         print("No suitable rooms are available based on your criteria.")
         return
 
-    print("Available rooms:")
-    for i, room in enumerate(available_rooms, 1):
-        print(f"{i}. {room['RoomName']} ({room['RoomCode']}) - Beds: {room['Beds']}, Type: {room['bedType']}, Max Occupancy: {room['maxOcc']}, Base Price: ${room['basePrice']}")
+    table = PrettyTable()
+    table.field_names = ["#", "Room Name", "Room Code", "Beds", "Type", "Max Occupancy", "Base Price", "Decor", "Check-In", "Check-Out"]
 
-    choice = input("Enter the option number to book or type 'cancel' to return to the main menu: ")
+    desired_interval = datetime.strptime(details['check_out'], '%Y-%m-%d') - datetime.strptime(details['check_in'], '%Y-%m-%d')
+
+    for i, room in enumerate(rooms_suggestions, 1):
+        base_price = "${:,.2f}".format(room['baseprice']) if isinstance(room['baseprice'], Decimal) else "Unknown"
+        
+        # For rooms with an alternative check-in date
+        if 'StartDate' in room:
+            alternative_check_in = room['StartDate'].strftime('%Y-%m-%d')
+            # Calculate the alternative check-out based on the desired interval
+            alternative_check_out = (room['StartDate'] + desired_interval).strftime('%Y-%m-%d')
+        else:
+            alternative_check_in = "N/A"
+            alternative_check_out = "N/A"
+
+        table.add_row([i, room.get('RoomName', 'Unknown'), room.get('Room', 'N/A'), room.get('Beds', 'N/A'), room.get('bedType', 'N/A'), 
+                       room.get('maxOcc', 'N/A'), base_price, room.get('decor', 'N/A'), 
+                       alternative_check_in, alternative_check_out])
+
+    print("\nAvailable rooms and/or alternative dates:")
+    print(table)
+
+    choice = input("Enter the option number to book, or type 'cancel' to return to the main menu: ")
     if choice.lower() == 'cancel':
         return
-    else:
-        selected_room = available_rooms[int(choice) - 1]
-        confirm_and_book_reservation(details, selected_room)
+
+    try:
+        selected_option = int(choice) - 1
+        if 0 <= selected_option < len(rooms_suggestions):
+            selected_room = rooms_suggestions[selected_option]
+            confirm_and_book_reservation(details, selected_room)
+        else:
+            print("Invalid selection. Please try again.")
+    except ValueError:
+        print("Please enter a valid option number.")
 
 def confirm_and_book_reservation(details, selected_room):
-    # Simplify date handling and total cost calculation
-    check_in = datetime.strptime(details['check_in'], '%Y-%m-%d')
-    check_out = datetime.strptime(details['check_out'], '%Y-%m-%d')
-    total_days = (check_out - check_in).days
-    weekend_days = sum(1 for i in range(total_days) if (check_in + timedelta(i)).weekday() >= 5)
-    weekday_days = total_days - weekend_days
-    total_cost = (weekday_days * selected_room['basePrice']) + (weekend_days * selected_room['basePrice'] * 1.1)
-    
-    # Assuming function to insert booking into database here
+    # Adjusting check-in date based on selected room or alternative suggestion
+    if 'StartDate' in selected_room and isinstance(selected_room['StartDate'], date):
+        check_in_date = selected_room['StartDate'].strftime('%Y-%m-%d')
+        # Calculate the check-out date based on the desired interval
+        desired_interval_days = (datetime.strptime(details['check_out'], '%Y-%m-%d') - datetime.strptime(details['check_in'], '%Y-%m-%d')).days
+        check_out_date = (selected_room['StartDate'] + timedelta(days=desired_interval_days)).strftime('%Y-%m-%d')
+    else:
+        check_in_date = details['check_in']
+        check_out_date = details['check_out']
 
-    print(f"Reservation confirmed for {details['first_name']} {details['last_name']} in {selected_room['RoomName']}.")
-    print(f"Total cost for the stay: ${round(total_cost, 2)}")
+
+    check_in = datetime.strptime(check_in_date, '%Y-%m-%d')
+    check_out = datetime.strptime(check_out_date, '%Y-%m-%d')
+    
+    total_days = (check_out - check_in).days
+    weekend_days = sum(1 for i in range(total_days) if (check_in + timedelta(days=i)).weekday() >= 5)
+    weekday_days = total_days - weekend_days
+
+    base_rate = float(selected_room['baseprice'])  # Assuming basePrice is a Decimal
+    total_cost = (weekday_days * base_rate) + (weekend_days * base_rate * 1.1)
+
+    # PrettyTable for displaying booking confirmation details
+    confirmation_table = PrettyTable()
+    confirmation_table.field_names = ["Detail", "Information"]
+    confirmation_details = [
+        ["First Name", details['first_name']],
+        ["Last Name", details['last_name']],
+        ["Room Code", selected_room.get('Room', 'N/A')],  # Adjusted based on your provided dictionary structure
+        ["Room Name", selected_room.get('RoomName', 'Unknown')],
+        ["Bed Type", selected_room.get('bedType', 'N/A')],
+        ["Begin Date of Stay", check_in_date],
+        ["End Date of Stay", check_out_date],
+        ["Number of Adults", str(details['adults'])],  # Ensuring numeric values are converted to strings for PrettyTable
+        ["Number of Children", str(details['kids'])],
+        ["Total Cost of Stay", f"${round(total_cost, 2)}"]
+    ]
+    
+    for detail in confirmation_details:
+        confirmation_table.add_row(detail)
+    
+    print("\nReservation Confirmation:")
+    print(confirmation_table)
+    
 
 def fr3_cancel_reservation(reservation_code):
     conn = create_connection()
