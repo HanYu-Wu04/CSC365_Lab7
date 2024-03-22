@@ -1,16 +1,24 @@
-Team Member
+# Inn/Hotel Reservation System
+
+This project implements an inn/hotel reservation system as part of the CSC 365 course requirements. The system allows users to perform a variety of operations related to room reservations.
+
+## Team Members
+
 - Han Yu Wu
 - Evan Cao
 
-Running Instrution
+## Running Instructions
 
-- Install all requirements from requirement.txt (pip install -r requirement.txt)
-- Create a .env file in the folder to add DB_PASSWORD='Your password', and adjust user in db_config if needed
-- Run main.py using Python3 (python main.py)
-- Enter 1 for fr1, 2 for fr2, ...etc
+1. **Install all requirements**: Run `pip install -r requirements.txt` to install the necessary Python packages.
+2. **Environment setup**: Create a `.env` file in the project root directory with your database password and other sensitive configurations. Example content for `.env`: DB_PASSWORD='YourPasswordHere'
+3. **Database configuration**: Adjust the database user and other configurations in `db_config.py` as necessary.
+4. **Launch the application**: Run the main script with Python 3 by executing `python main.py` in your terminal.
+5. **Navigate the menu**: Use the numeric options (e.g., enter `1` for FR1, `2` for FR2, etc.) to explore different functionalities of the reservation system.
 
-Known bugs and/or deficiencies
-- Encountered a big bug when developing FR2, where the query could not filter and display the 5 possibilites we wanted correctly, but was later fixed after adjusting and tweaking the logic.
+## Known Bugs and/or Deficiencies
 
-Additional Notes
-- We work together and develop the program on 1 machine so the log file only display 1 user
+- There was a significant challenge encountered during the development of FR2. The initial query could not accurately filter and display the 5 possible room options. This issue was resolved after revising the query logic.
+
+## Additional Notes
+
+- The development process involved close collaboration between the team members, predominantly using a single machine for implementation.
